@@ -96,8 +96,14 @@ export function useCheckins(user) {
   const postCheckin = async ({ mood, note }) => {
     if (!user) return;
     // Delete old comments so they don't carry over to the new status
-    const commentsSnap = await getDocs(collection(db, "checkins", user.uid, "comments"));
-    await Promise.all(commentsSnap.docs.map(d => deleteDoc(d.ref)));
+    try {
+      const commentsSnap = await getDocs(collection(db, "checkins", user.uid, "comments"));
+      console.log("Found", commentsSnap.docs.length, "comments to delete");
+      await Promise.all(commentsSnap.docs.map(d => deleteDoc(d.ref)));
+      console.log("Comments deleted successfully");
+    } catch(e) {
+      console.error("Failed to delete comments:", e.message);
+    }
     // Save new check-in
     await setDoc(doc(db, "checkins", user.uid), {
       friend:    user.displayName || user.email?.split("@")[0] || "Friend",
