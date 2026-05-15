@@ -376,7 +376,7 @@ function CheckinCard({c, user, isCult, t}) {
           <span style={{fontSize:13}}>{isCult?"📜":"💬"}</span>
           {showComments?(isCult?"hide testimonies":"hide comments"):(isCult?"testimonies":"comments")}
         </button>
-        {showComments&&<CommentThread collectionPath="checkins" docId={checkinId} user={user} isCult={isCult} t={t} since={c.updatedAt?.toDate?.()}/>}
+        {showComments&&<CommentThread collectionPath="checkins" docId={checkinId} user={user} isCult={isCult} t={t} since={c.updatedAt}/>}
       </div>
     </div>
   );
