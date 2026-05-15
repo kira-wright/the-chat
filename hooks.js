@@ -5,7 +5,7 @@
 import { useState, useEffect } from "react";
 import {
   collection, addDoc, onSnapshot, query,
-  orderBy, doc, setDoc, getDoc, deleteDoc, serverTimestamp
+  orderBy, doc, setDoc, getDoc, deleteDoc, getDocs, serverTimestamp
 } from "firebase/firestore";
 import { db, auth, googleProvider } from "./config";
 import { signInWithPopup, signOut, onAuthStateChanged } from "firebase/auth";
@@ -95,6 +95,10 @@ export function useCheckins(user) {
 
   const postCheckin = async ({ mood, note }) => {
     if (!user) return;
+    // Delete old comments so they don't carry over to the new status
+    const commentsSnap = await getDocs(collection(db, "checkins", user.uid, "comments"));
+    await Promise.all(commentsSnap.docs.map(d => deleteDoc(d.ref)));
+    // Save new check-in
     await setDoc(doc(db, "checkins", user.uid), {
       friend:    user.displayName || user.email?.split("@")[0] || "Friend",
       avatar:    user.photoURL    || "✨",
@@ -310,10 +314,8 @@ export async function writeReactionNotification({ recipientUid, reactorName, emo
 //   feed/{postId}/comments/{commentId}
 //   checkins/{checkinUid}/comments/{commentId}
 
-export function useComments(collectionPath, docId, since = null) {
+export function useComments(collectionPath, docId) {
   const [comments, setComments] = useState([]);
-  const sinceRef = { current: since }; // keep fresh reference without re-subscribing
-  sinceRef.current = since;
 
   useEffect(() => {
     if (!docId) return;
@@ -322,18 +324,7 @@ export function useComments(collectionPath, docId, since = null) {
       orderBy("createdAt", "asc")
     );
     const unsub = onSnapshot(q, (snap) => {
-      const all = snap.docs.map(d => ({ id: d.id, ...d.data() }));
-      const since = sinceRef.current;
-      // If `since` is provided, only show comments after that timestamp
-      const filtered = since
-        ? all.filter(c => {
-            const commentTs = c.createdAt?.toDate?.() || (c.createdAt?.seconds ? new Date(c.createdAt.seconds * 1000) : null);
-            const sinceTs   = since instanceof Date ? since : (since?.toDate?.() || (since?.seconds ? new Date(since.seconds * 1000) : null));
-            if (!commentTs || !sinceTs) return true; // show if timestamps missing
-            return commentTs > sinceTs;
-          })
-        : all;
-      setComments(filtered);
+      setComments(snap.docs.map(d => ({ id: d.id, ...d.data() })));
     });
     return unsub;
   }, [collectionPath, docId]);
