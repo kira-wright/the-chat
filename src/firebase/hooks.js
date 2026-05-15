@@ -5,7 +5,7 @@
 import { useState, useEffect } from "react";
 import {
   collection, addDoc, onSnapshot, query,
-  orderBy, doc, setDoc, getDoc, deleteDoc, serverTimestamp
+  orderBy, doc, setDoc, getDoc, deleteDoc, getDocs, serverTimestamp
 } from "firebase/firestore";
 import { db, auth, googleProvider } from "./config";
 import { signInWithPopup, signOut, onAuthStateChanged } from "firebase/auth";
@@ -95,6 +95,16 @@ export function useCheckins(user) {
 
   const postCheckin = async ({ mood, note }) => {
     if (!user) return;
+    // Delete old comments so they don't carry over to the new status
+    try {
+      const commentsSnap = await getDocs(collection(db, "checkins", user.uid, "comments"));
+      console.log("Found", commentsSnap.docs.length, "comments to delete");
+      await Promise.all(commentsSnap.docs.map(d => deleteDoc(d.ref)));
+      console.log("Comments deleted successfully");
+    } catch(e) {
+      console.error("Failed to delete comments:", e.message);
+    }
+    // Save new check-in
     await setDoc(doc(db, "checkins", user.uid), {
       friend:    user.displayName || user.email?.split("@")[0] || "Friend",
       avatar:    user.photoURL    || "✨",
