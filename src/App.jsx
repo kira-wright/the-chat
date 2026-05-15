@@ -387,6 +387,7 @@ function FeedCard({item,isCult,t,pinned,onPin,user,collectionPath="feed"}){
   const [expanded,setExpanded]=useState(false);
   const [collabInput,setCollabInput]=useState("");
   const [collabItems,setCollabItems]=useState(item.items||[]);
+  const [showComments,setShowComments]=useState(false);
   const badge=t.typeBadge[item.type]||t.typeBadge.moment;
   const avatar=isCult?(item.cultAvatar||item.avatar):item.avatar;
   const color=isCult?(item.cultColor||item.color):item.color;
