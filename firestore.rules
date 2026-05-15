@@ -1,0 +1,95 @@
+// ─── FIRESTORE SECURITY RULES ────────────────────────────────────────────────
+//
+// HOW TO DEPLOY THESE:
+// 1. Go to Firebase Console → Firestore Database → Rules tab
+// 2. Replace everything in the editor with the rules below
+// 3. Click "Publish"
+//
+// These rules mean:
+// - Only signed-in users can read or write anything
+// - Users can only edit/delete their OWN posts and check-ins
+// - Anyone in the group can pin/unpin (shared settings doc)
+// - Anyone can add reactions, but only to their own reaction doc
+
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // Helper: must be logged in
+    function isSignedIn() {
+      return request.auth != null;
+    }
+
+    // Helper: user owns this doc
+    function isOwner(uid) {
+      return request.auth.uid == uid;
+    }
+
+    // Feed posts — anyone signed in can read & create
+    // Only the post author can update/delete
+    match /feed/{postId} {
+      allow read:   if isSignedIn();
+      allow create: if isSignedIn();
+      allow update, delete: if isSignedIn() && resource.data.authorUid == request.auth.uid;
+
+      // Reactions subcollection — each user manages their own reaction doc
+      match /reactions/{uid} {
+        allow read:             if isSignedIn();
+        allow write, delete:    if isSignedIn() && isOwner(uid);
+      }
+
+      // Poll votes subcollection — each user can vote once
+      match /votes/{uid} {
+        allow read:             if isSignedIn();
+        allow create:           if isSignedIn() && isOwner(uid);
+        // No update/delete — votes are permanent once cast
+      }
+
+      // Comments subcollection — anyone can read/add, only author can delete
+      match /comments/{commentId} {
+        allow read:   if isSignedIn();
+        allow create: if isSignedIn();
+        allow delete: if isSignedIn() && resource.data.authorUid == request.auth.uid;
+      }
+    }
+
+    // Articles — same rules as feed
+    match /articles/{articleId} {
+      allow read:           if isSignedIn();
+      allow create:         if isSignedIn();
+      allow update, delete: if isSignedIn() && resource.data.authorUid == request.auth.uid;
+    }
+
+    // Check-ins — each user has one doc keyed by their uid
+    match /checkins/{uid} {
+      allow read:           if isSignedIn();
+      allow write, delete:  if isSignedIn() && isOwner(uid);
+
+      // Reactions on check-ins
+      match /reactions/{reactorUid} {
+        allow read:            if isSignedIn();
+        allow write, delete:   if isSignedIn() && isOwner(reactorUid);
+      }
+
+      // Comments on check-ins
+      match /comments/{commentId} {
+        allow read:   if isSignedIn();
+        allow create: if isSignedIn();
+        allow delete: if isSignedIn() && resource.data.authorUid == request.auth.uid;
+      }
+    }
+
+    // Notifications — each user reads their own, anyone signed in can write
+    // (so friends can write a notification to your inbox when they react)
+    match /notifications/{uid}/items/{notifId} {
+      allow read, delete: if isSignedIn() && isOwner(uid);
+      allow create:       if isSignedIn();
+    }
+
+    // Group settings (pinned post, theme preference, etc.)
+    // Any signed-in member can read or write
+    match /settings/{settingId} {
+      allow read, write: if isSignedIn();
+    }
+  }
+}
