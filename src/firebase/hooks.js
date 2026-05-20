@@ -99,10 +99,12 @@ export function useCheckins(user) {
     try {
       const commentsSnap = await getDocs(collection(db, "checkins", user.uid, "comments"));
       const reactionsSnap = await getDocs(collection(db, "checkins", user.uid, "reactions"));
+      console.log("Deleting", commentsSnap.docs.length, "comments and", reactionsSnap.docs.length, "reactions");
       await Promise.all([
         ...commentsSnap.docs.map(d => deleteDoc(d.ref)),
         ...reactionsSnap.docs.map(d => deleteDoc(d.ref)),
       ]);
+      console.log("Done clearing");
     } catch(e) {
       console.error("Failed to clear checkin subcollections:", e.message);
     }
