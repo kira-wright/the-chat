@@ -51,7 +51,12 @@ export function useFeed() {
     });
   };
 
-  return { feed, addPost };
+  const deletePost = async (postId) => {
+    if (!postId) return;
+    await deleteDoc(doc(db, "feed", postId));
+  };
+
+  return { feed, addPost, deletePost };
 }
 
 // ── ARTICLES ──────────────────────────────────────────────────────────────────
@@ -75,7 +80,12 @@ export function useArticles() {
     });
   };
 
-  return { articles, addArticle };
+  const deleteArticle = async (articleId) => {
+    if (!articleId) return;
+    await deleteDoc(doc(db, "articles", articleId));
+  };
+
+  return { articles, addArticle, deleteArticle };
 }
 
 // ── CHECK-INS ─────────────────────────────────────────────────────────────────
@@ -95,18 +105,14 @@ export function useCheckins(user) {
 
   const postCheckin = async ({ mood, note }) => {
     if (!user) return;
-    // Delete old comments and reactions so they don't carry over to the new status
+    // Delete old comments so they don't carry over to the new status
     try {
       const commentsSnap = await getDocs(collection(db, "checkins", user.uid, "comments"));
-      const reactionsSnap = await getDocs(collection(db, "checkins", user.uid, "reactions"));
-      console.log("Deleting", commentsSnap.docs.length, "comments and", reactionsSnap.docs.length, "reactions");
-      await Promise.all([
-        ...commentsSnap.docs.map(d => deleteDoc(d.ref)),
-        ...reactionsSnap.docs.map(d => deleteDoc(d.ref)),
-      ]);
-      console.log("Done clearing");
+      console.log("Found", commentsSnap.docs.length, "comments to delete");
+      await Promise.all(commentsSnap.docs.map(d => deleteDoc(d.ref)));
+      console.log("Comments deleted successfully");
     } catch(e) {
-      console.error("Failed to clear checkin subcollections:", e.message);
+      console.error("Failed to delete comments:", e.message);
     }
     // Save new check-in
     await setDoc(doc(db, "checkins", user.uid), {
