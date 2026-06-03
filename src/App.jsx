@@ -807,6 +807,19 @@ export default function TheChat(){
                   {[...feed].sort((a,b)=>b.id===pinnedId?1:a.id===pinnedId?-1:0).slice(0,3).map(item=><FeedCard key={item.id} item={item} isCult={isCult} t={t} pinned={pinnedId===item.id} onPin={()=>togglePin(item.id)} user={user}/>)}
                 </div>
               </div>
+
+              {/* Recent articles */}
+              {articles.length>0&&(
+                <div>
+                  <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:12}}>
+                    <h2 style={{fontFamily:isCult?"'Cinzel',serif":t.titleFont,fontSize:isCult?11:15,color:isCult?"#B08050":"#3D2C1E",letterSpacing:isCult?"0.1em":0,textTransform:isCult?"uppercase":"none"}}>{t.articlesTitle}</h2>
+                    <button onClick={()=>setTab("articles")} style={{background:"none",border:"none",fontSize:12,color:t.secondary,cursor:"pointer",fontFamily:t.bodyFont,...t.seeAllStyle}}>{t.seeAll}</button>
+                  </div>
+                  <div style={{display:"flex",flexDirection:"column",gap:12}}>
+                    {articles.slice(0,2).map(a=><FeedCard key={a.id} item={a} isCult={isCult} t={t} pinned={false} onPin={null} user={user}/>)}
+                  </div>
+                </div>
+              )}
             </div>
           )}
 
