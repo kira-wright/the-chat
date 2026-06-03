@@ -383,7 +383,7 @@ function CheckinCard({c, user, isCult, t}) {
 }
 
 // ─── FEED CARD ───────────────────────────────────────────────────────────────
-function FeedCard({item,isCult,t,pinned,onPin,user,collectionPath="feed"}){
+function FeedCard({item,isCult,t,pinned,onPin,user,collectionPath="feed",onDelete=null}){
   const [expanded,setExpanded]=useState(false);
   const [collabInput,setCollabInput]=useState("");
   const [collabItems,setCollabItems]=useState(item.items||[]);
@@ -412,6 +412,7 @@ function FeedCard({item,isCult,t,pinned,onPin,user,collectionPath="feed"}){
         <div style={{marginLeft:"auto",display:"flex",alignItems:"center",gap:6}}>
           <span style={{fontSize:10,color:t.secondary,fontStyle:isCult?"italic":"normal"}}>{formatTime(item.createdAt)||item.time}</span>
           {onPin&&<button onClick={onPin} style={{background:"none",border:"none",cursor:"pointer",fontSize:12,opacity:pinned?1:0.3,transition:"opacity 0.2s",padding:"0 2px"}} onMouseEnter={e=>e.currentTarget.style.opacity=1} onMouseLeave={e=>e.currentTarget.style.opacity=pinned?1:0.3}>{isCult?"🩸":"📌"}</button>}
+          {onDelete&&item.authorUid===user?.uid&&<button onClick={()=>{if(window.confirm("Delete this post?"))onDelete(item.id);}} style={{background:"none",border:"none",cursor:"pointer",fontSize:11,opacity:0.35,padding:"0 2px",color:t.secondary}} onMouseEnter={e=>e.currentTarget.style.opacity=1} onMouseLeave={e=>e.currentTarget.style.opacity=0.35}>✕</button>}
         </div>
       </div>
 
@@ -504,8 +505,8 @@ export default function TheChat(){
   const [showNotifs,setShowNotifs]=useState(false);
   // ── Firebase hooks ──
   const { user, loading, signIn } = useAuth();
-  const { feed, addPost }         = useFeed();
-  const { articles, addArticle }  = useArticles();
+  const { feed, addPost, deletePost } = useFeed();
+  const { articles, addArticle, deleteArticle } = useArticles();
   const { checkins, postCheckin } = useCheckins(user);
   const { pinnedId, togglePin }   = usePinned();
   const streak                    = useStreak();
@@ -804,19 +805,19 @@ export default function TheChat(){
                   <button onClick={()=>setTab("feed")} style={{background:"none",border:"none",fontSize:12,color:t.secondary,cursor:"pointer",fontFamily:t.bodyFont,...t.seeAllStyle}}>{t.seeAll}</button>
                 </div>
                 <div style={{display:"flex",flexDirection:"column",gap:12}}>
-                  {[...feed].sort((a,b)=>b.id===pinnedId?1:a.id===pinnedId?-1:0).slice(0,3).map(item=><FeedCard key={item.id} item={item} isCult={isCult} t={t} pinned={pinnedId===item.id} onPin={()=>togglePin(item.id)} user={user}/>)}
+                  {[...feed].sort((a,b)=>b.id===pinnedId?1:a.id===pinnedId?-1:0).slice(0,3).map(item=><FeedCard key={item.id} item={item} isCult={isCult} t={t} pinned={pinnedId===item.id} onPin={()=>togglePin(item.id)} user={user} onDelete={deletePost}/>)}
                 </div>
               </div>
 
               {/* Recent articles */}
-              {articles.length>0&&(
+              {(
                 <div>
                   <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:12}}>
                     <h2 style={{fontFamily:isCult?"'Cinzel',serif":t.titleFont,fontSize:isCult?11:15,color:isCult?"#B08050":"#3D2C1E",letterSpacing:isCult?"0.1em":0,textTransform:isCult?"uppercase":"none"}}>{t.articlesTitle}</h2>
                     <button onClick={()=>setTab("articles")} style={{background:"none",border:"none",fontSize:12,color:t.secondary,cursor:"pointer",fontFamily:t.bodyFont,...t.seeAllStyle}}>{t.seeAll}</button>
                   </div>
                   <div style={{display:"flex",flexDirection:"column",gap:12}}>
-                    {articles.slice(0,2).map(a=><FeedCard key={a.id} item={a} isCult={isCult} t={t} pinned={false} onPin={null} user={user}/>)}
+                    {articles.slice(0,2).map(a=><FeedCard key={a.id} item={a} isCult={isCult} t={t} pinned={false} onPin={null} user={user} onDelete={deleteArticle}/>)}
                   </div>
                 </div>
               )}
@@ -831,7 +832,7 @@ export default function TheChat(){
               <p style={{fontSize:13,color:t.secondary,marginBottom:16,fontStyle:isCult?"italic":"normal"}}>{t.feedSub}</p>
               {isCult&&<div style={{display:"flex",alignItems:"center",gap:10,marginBottom:16}}><div style={{flex:1,height:1,background:"linear-gradient(90deg,transparent,#9B6030)"}}/><span style={{color:"#9B6030",fontSize:13}}>✦</span><div style={{flex:1,height:1,background:"linear-gradient(90deg,#9B6030,transparent)"}}/></div>}
               <div style={{display:"flex",flexDirection:"column",gap:14}}>
-                {[...feed].sort((a,b)=>b.id===pinnedId?1:a.id===pinnedId?-1:0).map(item=><FeedCard key={item.id} item={item} isCult={isCult} t={t} pinned={pinnedId===item.id} onPin={()=>togglePin(item.id)} user={user}/>)}
+                {[...feed].sort((a,b)=>b.id===pinnedId?1:a.id===pinnedId?-1:0).map(item=><FeedCard key={item.id} item={item} isCult={isCult} t={t} pinned={pinnedId===item.id} onPin={()=>togglePin(item.id)} user={user} onDelete={deletePost}/>)}
               </div>
             </div>
           )}
@@ -846,7 +847,7 @@ export default function TheChat(){
                 + {isCult?"Offer a sacred text":"Share an article"}
               </button>
               <div style={{display:"flex",flexDirection:"column",gap:14}}>
-                {articles.map(a=><FeedCard key={a.id} item={a} isCult={isCult} t={t} pinned={false} onPin={null} user={user}/>)}
+                {articles.map(a=><FeedCard key={a.id} item={a} isCult={isCult} t={t} pinned={false} onPin={null} user={user} onDelete={deleteArticle}/>)}
               </div>
             </div>
           )}
